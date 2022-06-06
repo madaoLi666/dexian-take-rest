@@ -56,7 +56,13 @@
             <div class="content-item-author">
               <span>${_author}</span>
             </div>
-            <div class="content-item-status-change"></div>
+            <div class="content-item-status-action">
+              <div class="content-item-status-action-select">
+                <div>Start</div>
+                <div>Finish</div>
+                <div>Delete</div>
+              </div>
+            </div>
           </div>
           <div class="content-item-description">
             <span>${_description}</span>
@@ -229,9 +235,10 @@
   function formInputEventInitialize(onBlur) {
     var formInput = document.getElementById("form-input");
     formInput.addEventListener("blur", function (e) {
-      // if (e.target.value) {
-      onBlur({ title: e.target.value })
-      // }
+      if (e.target.value) {
+        onBlur({ title: e.target.value });
+        e.target.value = "";
+      }
     })
   }
 

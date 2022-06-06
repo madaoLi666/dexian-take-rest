@@ -68,7 +68,8 @@
 
 }
 
-#main > #content > div.content-item div.content-item-status-change {
+#main > #content > div.content-item div.content-item-status-action {
+  position: relative;
   width: 0;
   height: 0;
   border: 5px solid #ffffff;
@@ -77,14 +78,41 @@
   border-bottom-color: transparent;
 }
 
-#main > #content > div.content-item div.content-item-status-change:hover {
-  border: 5px solid #666666;
+#main > #content > div.content-item div.content-item-status-action:hover {
+  border: 8px solid #666666;
   border-left-color: transparent;
   border-right-color: transparent;
   border-bottom-color: transparent;
   cursor: pointer;
 }
 
+#main > #content > div.content-item div.content-item-status-action > div.content-item-status-action-select {
+  display: block;
+  visibility: hidden;
+}
+
+#main > #content > div.content-item div.content-item-status-action:hover > div.content-item-status-action-select {
+  display: block;
+  position: absolute;
+  visibility: visible;
+  padding: 4px 6px;
+  min-width: 90px;
+  left: -100px;
+  color: #000000;
+  background-color: #ffffff;
+}
+
+#main > #content > div.content-item div.content-item-status-action:hover > div.content-item-status-action-select > div {
+  color: #000000;
+  background-color: #ffffff;
+}
+
+#main > #content > div.content-item div.content-item-status-action:hover > div.content-item-status-action-select > div:hover {
+  color: #ffffff;
+  background-color: #000000;
+}
+
+/** Description  */
 #main > #content > div.content-item div.content-item-description {
   margin-top: 4px;
 }
