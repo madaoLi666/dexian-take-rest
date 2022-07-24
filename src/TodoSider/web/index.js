@@ -10,6 +10,7 @@
 
   var _STATUS_LIST = [_STATUS0, _STATUS1, _STATUS2];
 
+  var nonClosedElementType = ['input', 'br'];
 
   var commonFunc = {
     bind: function (func, _this) {
@@ -43,39 +44,34 @@
     }
   }
 
-  /** Render */
-  function renderer(methodStr, itemDataList) {
-    const dom = itemDataList.map((item) => {
-      const { _date, _author = "", _title, _description = "" } = item;
-      const template = `
-        <div class="content-item">
-          <div class="content-item-line-one">
-            <div class="content-item-title">
-              <span><b>${_title}</b></span>
-            </div>
-            <div class="content-item-author">
-              <span>${_author}</span>
-            </div>
-            <div class="content-item-status-action">
-              <div class="content-item-status-action-select">
-                <div>Start</div>
-                <div>Finish</div>
-                <div>Delete</div>
-              </div>
-            </div>
-          </div>
-          <div class="content-item-description">
-            <span>${_description}</span>
-          </div>
-          <div class="content-item-date">
-            <span>${_date.getFullYear()}-${_date.getMonth() + 1}-${_date.getDate() + 1}</span>
-          </div>
-        </div>
-      `;
-      return template;
-    });
-    document.getElementById("content").innerHTML = dom.join("");
-    return dom;
+  function createElement(tagName, configs, children) {
+    const element = document.createElement(tagName);
+    const props = {};
+    if (configs) {
+      for (let key in configs) {
+        if (key === "class") {
+          element.classList.add(configs[key]);
+        } else {
+          element[key] = configs[key];
+        }
+      }
+    }
+    const childrensLen = arguments.length - 2;
+    let childrenArray = null;
+    if (childrensLen === 1) {
+      if (typeof children === "string") {
+        element.appendChild(new Text(children));
+      } else {
+        element.appendChild(children);
+      }
+    } else {
+      // childrenArray = new Array(childrensLen);
+      for (let i = 0; i < childrensLen; i++) {
+        element.appendChild(arguments[i + 2]);
+      }
+      // element.appendChild(childrenArray);
+    }
+    return element;
   }
 
   /** State Management */
@@ -86,20 +82,25 @@
      * @param {Array<ItemData>} noStartList 
      * @param {Array<ItemData>} pendingList 
      * @param {Array<ItemData>} finishedList 
+     * @param {HTMLElement} contentDOM
      */
-    function State(activeItem, noStartList, pendingList, finishedList) {
+    function State({ activeItem, noStartList, pendingList, finishedList, contentDom }) {
       this._activeItem = activeItem || _STATUS0;
       this[_STATUS0_LIST] = noStartList || [];
       this[_STATUS1_LIST] = pendingList || [];
       this[_STATUS2_LIST] = finishedList || [];
+      this._contentDom = contentDom;
       let _self = this;
-      commonFunc.arrayListener(this[_STATUS0_LIST], renderer);
+      this.render = commonFunc.bind(this.render, this);
+      commonFunc.arrayListener(this[_STATUS0_LIST], _self.render);
+      commonFunc.arrayListener(this[_STATUS1_LIST], _self.render);
+      commonFunc.arrayListener(this[_STATUS2_LIST], _self.render);
       Object.defineProperty(this, "activeItem", {
         get: function () {
           return _self["_activeItem"];
         },
         set: function (value) {
-          renderer("", this[`_${value}_LIST`]);
+          _self.render("", this[`_${value}_LIST`], value);
           _self["_activeItem"] = value;
         }
       })
@@ -125,7 +126,7 @@
       const status = itemData.getState();
       const listKey = "_" + status + "_LIST";
       this[listKey].push(itemData);
-      this.sort();
+      this.sort(listKey);
       return;
     }
 
@@ -152,6 +153,110 @@
       } else {
         this.activeItem = selected;
       }
+    }
+
+    State.prototype.render = function (methodStr, itemDataList, value) {
+      if (itemDataList.length === 0) {
+        this._contentDom.innerHTML = null;
+        return;
+      }
+      if (this._activeItem !== itemDataList[0]._status) {
+        // no need to render
+        return;
+      }
+      let _self = this;
+      const doms = itemDataList.map((item) => {
+        const { _date, _author = "", _title, _description = "", _status } = item;
+        const id = _date.getTime();
+
+        function start() {
+          _self.move(item, _STATUS0, _STATUS1);
+        }
+
+        function finish() {
+          _self.move(item, _STATUS0, _STATUS2);
+        }
+
+        function del() {
+          _self.del(item);
+        }
+
+        function getActionList(status) {
+          if (status === _STATUS0) {
+            return createElement("div", { class: "content-item-status-action-select" },
+              createElement("div", { onclick: start }, "Start"),
+              createElement("div", { onclick: finish }, "Finish"),
+              createElement("div", { onclick: del }, "Delete")
+            );
+          }
+          if (status === _STATUS1) {
+            return createElement("div", { class: "content-item-status-action-select" },
+              createElement("div", null, "Finish"),
+              createElement("div", null, "Delete")
+            );
+          }
+          if (status === _STATUS2) {
+            return createElement("div", { class: "content-item-status-action-select" },
+              createElement("div", { onclick: internalFunc }, "Start"),
+              createElement("div", null, "Finish"),
+              createElement("div", null, "Delete")
+            );
+          }
+        }
+
+        const template = createElement("div", { class: "content-item", id: id },
+          createElement("div", { class: "content-item-line-one" },
+            createElement("div", { class: "content-item-title" },
+              createElement("span", null,
+                createElement("b", null, _title))),
+            createElement("div", { class: "content-item-author" },
+              createElement("span", null, _author)),
+            createElement("div", { class: "content-item-status-action" },
+              getActionList(_status)
+            )
+          ),
+          createElement("div", { class: "content-item-description" },
+            createElement("span", null, _description)
+          ),
+          createElement("div", { class: "content-item-date" },
+            createElement("span", null, `${_date.getFullYear()}-${_date.getMonth() + 1}-${_date.getDate() + 1}`)
+          ),
+        );
+        return template;
+      });
+      if (doms.length !== 0) {
+        _self._contentDom.innerHTML = null;
+        doms.forEach(function (dom) {
+          _self._contentDom.appendChild(dom);
+        })
+      }
+
+      return doms;
+    }
+
+    // We indentify the item with date
+    State.prototype.move = function (item, from, to) {
+      const fromListKey = "_" + from + "_LIST";
+      const toListKey = "_" + to + "_LIST";
+      console.log(toListKey);
+      let index = -1;
+      for (let i = 0; i < this[fromListKey].length; i++) {
+        if (this[fromListKey][i]._date === item._date) {
+          index = i;
+          break;
+        }
+      }
+      if (index >= 0) {
+        this[fromListKey].splice(index, 1);
+        item._status = to;
+        this[toListKey].push(item);
+        this.sort(toListKey);
+      }
+      
+    }
+
+    State.prototype.del = function (item) {
+
     }
 
     return State;
@@ -243,7 +348,8 @@
   }
 
   function init() {
-    const state = new State();
+    const contentDom = document.getElementById("content");
+    const state = new State({ contentDom });
     const stateActiveFunc = commonFunc.bind(state.active, state);
     headerItemEventInitialize(stateActiveFunc);
     const stateCreateFunc = commonFunc.bind(state.create, state);
